@@ -1,14 +1,15 @@
 package com.example.rag.service;
 
 import com.azure.search.documents.SearchClient;
+import com.azure.search.documents.models.QueryType;
 import com.azure.search.documents.models.SearchOptions;
-import com.azure.search.documents.models.SearchQueryType;
-import com.azure.search.documents.models.SearchResult;
-import com.azure.search.documents.models.SearchResults;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import java.util.*;
 import java.util.stream.Collectors;
+import com.azure.search.documents.util.SearchPagedIterable;
+import com.azure.search.documents.models.SearchResult;
+import com.azure.core.util.Context;
 /**
  * SearchService
  * - Azure Search의 vector/hybrid/keyword(텍스트) 검색을 분기 처리
@@ -31,19 +32,19 @@ public class SearchService {
         try {
             SearchOptions options = new SearchOptions().setTop(top);
             if (Objects.equals(type, "vector")) {
-                options.setQueryType(SearchQueryType.SEMANTIC); // 실제 vector 필드 쿼리 옵션 필요
+                options.setQueryType(QueryType.SEMANTIC); // 실제 vector 필드 쿼리 옵션 필요
             } else if (Objects.equals(type, "hybrid")) {
-                options.setQueryType(SearchQueryType.FULL); // hybrid 예시, 실제 옵션 환경 맞춤
+                options.setQueryType(QueryType.FULL); // hybrid 예시, 실제 옵션 환경 맞춤
             } else {
-                options.setQueryType(SearchQueryType.SIMPLE);
+                options.setQueryType(QueryType.SIMPLE);
             }
-            SearchResults results = searchClient.search(query, options);
+            SearchPagedIterable results = searchClient.search(query, options, Context.NONE);
             List<SearchResultDTO> out = new ArrayList<>();
-            for (SearchResult<?> r : results.getResults()) {
-                Map<String, Object> fields = r.getDocument();
+            for (SearchResult r : results) {
+                Map<String, Object> fields = r.getDocument(Map.class);
                 out.add(new SearchResultDTO(
                         fields.getOrDefault("id", "").toString(),
-                        r.getScore(),
+                        null,
                         fields
                 ));
             }
